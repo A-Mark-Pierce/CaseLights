@@ -9,6 +9,7 @@
 // Globale Daten fuer Bearbeitung der Moden
 CRGB g_PixelsCopy[cNumPixels];
 unsigned long g_InitialTime;
+unsigned int  g_StepCount;
 bool  g_Direction;
 
 
@@ -102,9 +103,9 @@ void DoFadeMode(unsigned long currentTime)
   else {
     // Fade nach Schwarz
     for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-      g_Pixels[nPixel].red = g_PixelsCopy[nPixel].red * (1 - fProgress);
-      g_Pixels[nPixel].green = g_PixelsCopy[nPixel].green * (1 - fProgress);
-      g_Pixels[nPixel].blue = g_PixelsCopy[nPixel].blue * (1 - fProgress);
+      g_Pixels[nPixel].red = g_PixelsCopy[nPixel].red * (1.0 - fProgress);
+      g_Pixels[nPixel].green = g_PixelsCopy[nPixel].green * (1.0 - fProgress);
+      g_Pixels[nPixel].blue = g_PixelsCopy[nPixel].blue * (1.0 - fProgress);
     }
   }
   
@@ -118,7 +119,8 @@ void  InitialiseChaseMode(unsigned long currentTime, bool bDirection)
   g_Direction = bDirection;
 }
 
-void DoChaseMode(unsigned long currentTime)
+/////////////////////////////////////////////////////////////////////////////////
+bool DoChaseMode(unsigned long currentTime)
 {
   if ( abs(currentTime - g_InitialTime) >= g_ModeInterval ) {
     if ( g_Direction ) {
@@ -142,5 +144,31 @@ void DoChaseMode(unsigned long currentTime)
     
     g_InitialTime = currentTime;
     FastLED.show();
+    return  true;
+  }
+
+  return  false;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+void  InitialiseShuttleMode(unsigned long currentTime)
+{
+  g_StepCount = 0;
+  InitialiseChaseMode(currentTime, true);
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+void DoShuttleMode(unsigned long currentTime)
+{
+  if ( DoChaseMode(currentTime) ) {
+    g_StepCount++;
+
+    if ( g_StepCount > g_ModeSteps) {
+      // Richtungswechsel
+      g_Direction = !g_Direction;
+      g_StepCount = 0;
+    }
   }
 }
+
+

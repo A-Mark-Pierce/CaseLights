@@ -12,7 +12,7 @@
 #include <FastLED.h>
 
 //
-// Arduino kann an einem internem USB-Port angeschlossen werden (direkt am Mainboard
+// Arduino kann an einem internem USB-Port angeschlossen werden (direkt am Mainboard)
 //
 
 typedef unsigned long dword;
@@ -24,25 +24,24 @@ const unsigned int  cCommsBaudRate(9600);
 const unsigned int  cNumPixels(60);
 const byte  cPixelDataOut(6);
 
-// Parameter fuer Kommando-Verarbeitung
-const unsigned int  cMaxCommand(20);
+// Globale Daten fuer die Pixels
+CRGB g_Pixels[cNumPixels];
 
-
+// Zustaende
 typedef enum {
-  eModeFixed,
+  eModeStatic,
   eModeBlink,
   eModeFade,
   eModeChaseClockwise,
   eModeChaseWiddershins,
+  eModeShuttle,
   
 } t_OperatingMode;
 
-// Globale Daten fuer die Pixels
-CRGB g_Pixels[cNumPixels];
-
-// Globale Daten fuer die Animierung
-t_OperatingMode g_OperatingMode(eModeFixed);
+// Globale Daten fuer die Animierungsmodi
+t_OperatingMode g_OperatingMode(eModeStatic);
 unsigned long g_ModeInterval;
+unsigned int  g_ModeSteps;
 
 
 void setup() 
@@ -73,10 +72,10 @@ void loop()
   bool  bGotNew = ProcessSerial();
 
   switch(g_OperatingMode) {
-    case eModeFixed:
+    case eModeStatic:
       if (bGotNew) {
         FastLED.show();
-//        Serial.println("Fixed");
+//        Serial.println("Static");
       }
       break;
       
@@ -117,6 +116,16 @@ void loop()
       }
       else {
         DoChaseMode(millis());
+      }
+      break;
+
+    case eModeShuttle:
+      if (bGotNew) {
+        InitialiseShuttleMode(millis());
+//        Serial.println("Shuttle");
+      }
+      else {
+        DoShuttleMode(millis());
       }
       break;
 

@@ -6,6 +6,9 @@
 
 #include "Arduino.h"
 
+// Parameter fuer Kommando-Verarbeitung
+const unsigned int  cMaxCommand(20);
+
 // Globale Daten fuer Kommandos
 char  g_CmdBuffer[cMaxCommand];
 byte  g_CmdLen(0);
@@ -166,6 +169,42 @@ bool  ProcessFixedCmd()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool  ProcessCometCmd()
+{
+  bool  bValid(false);
+  CRGB  rgbVal(random(256), random(256), random(256));
+  
+  if ( g_CmdLen > 6 ) {
+    bValid = ReadColourValue(1, rgbVal);
+  }
+  else {
+    bValid = (1 == g_CmdLen);
+  }
+
+  if (bValid) {
+    for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+      g_Pixels[nPixel] = rgbVal;
+    }
+  }
+
+  return bValid;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool  ProcessRandomCmd()
+{
+  bool  bValid(1 == g_CmdLen);
+  
+  if (bValid) {
+    for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+      g_Pixels[nPixel] = CRGB(random(256), random(256), random(256));
+    }
+  }
+
+  return bValid;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool  ProcessBlinkFadeCmd()
 {
   bool  bValid(false);
@@ -226,12 +265,50 @@ bool  ProcessChaseCmd()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool  ProcessShuttleCmd()
+{
+  bool  bValid(false);
+
+  if (g_CmdLen > 1) {
+    if (' ' == g_CmdBuffer[1]) {
+      if ( ReadLongValue(2, g_ModeInterval) ) {
+        if (' ' == g_CmdBuffer[6]) {
+          bValid = ReadShortValue(7, g_ModeSteps);
+        }
+        else {
+          g_ModeSteps = random(cNumPixels);
+          bValid = true;
+        }
+      }
+      else {
+        if ( ReadShortValue(2, g_ModeSteps) ) {
+          g_ModeInterval = random(10000);
+          bValid = true;
+        }
+      }    
+    }
+  }
+  else {
+    // Zufallswerte
+    g_ModeInterval = random(10000);
+    g_ModeSteps = random(cNumPixels);
+    bValid = true;
+  }
+
+  return bValid;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //  C[000000][ 00] - Fixed colour [RGB value in hex, default random] [pixel index, default all]
+//  K[000000] - Komet, colour brightness decreases along strip [RGB value of comet head in hex, default random]
+//  X - Set all pixels to a different random colour
 //  B[000000][ 0000] - Blink colour [RGB value in hex, default current][interval in ms, default random]
 //  F[000000][ 0000] - Fade colour up and down [RGB value in hex, default current][interval in ms, default random]
 //  R[ 0000] - Rotate clockwise [interval in ms, default random]
 //  W[ 0000] - Rotate widdershins [interval in ms, default random]
+//  S[ 0000][ 00] - Shuttle (back and forth) [interval in decimal ms, default random] [number of pixels decimal, default all]
+//  H - Halt (animation)
 //
 bool  ProcessCommand()
 {
@@ -241,9 +318,28 @@ bool  ProcessCommand()
     switch (g_CmdBuffer[0]) {
       case 'C':
         if ( ProcessFixedCmd() ) {
-          g_OperatingMode = eModeFixed;
+          g_OperatingMode = eModeStatic;
           bValid = true;
         }
+        break;
+
+      case 'K':
+        if ( ProcessCometCmd() ) {
+          g_OperatingMode = eModeStatic;
+          bValid = true;
+        }
+        break;
+
+      case 'X':
+        if ( ProcessRandomCmd() ) {
+          g_OperatingMode = eModeStatic;
+          bValid = true;
+        }
+        break;
+
+      case 'H':
+        g_OperatingMode = eModeStatic;
+        bValid = true;
         break;
 
       case 'B':
@@ -274,6 +370,13 @@ bool  ProcessCommand()
         }
         break;
 
+      case 'S':
+        if ( ProcessShuttleCmd() ) {
+          g_OperatingMode = eModeShuttle;
+          bValid = true;
+        }
+        break;
+
       default:
         break;
     }
@@ -298,6 +401,7 @@ bool  ProcessSerial()
 
       if ( ProcessCommand() ) {
         bNewCommand = true;
+        Serial.println("OK");
       }
       else {
         Serial.println("E_CMD");
@@ -306,15 +410,16 @@ bool  ProcessSerial()
       g_CmdLen = 0;
     }
     else {
-      if (g_CmdLen < cMaxCommand) {
-        g_CmdBuffer[g_CmdLen++] = newChar;
+      if (newChar >= ' ') { // Ignoriere Steuerungs-Zeichen ausser CR, insb. LF
+        if (g_CmdLen < cMaxCommand) {
+          g_CmdBuffer[g_CmdLen++] = newChar;
+        }
+        else {
+          Serial.println("");
+          Serial.println("E_LEN");
+          g_CmdLen = 0;
+        }
       }
-      else {
-        Serial.println("");
-        Serial.println("E_LEN");
-        g_CmdLen = 0;
-      }
-  
     }
   }
 
