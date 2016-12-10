@@ -126,7 +126,7 @@ bool DoChaseMode(unsigned long currentTime)
     if ( g_Direction ) {
       CRGB  lastPixel = g_Pixels[cNumPixels-1];
       
-      for ( unsigned int nPixel = 1; nPixel < cNumPixels; nPixel++ ) {
+      for ( unsigned int nPixel = cNumPixels-1; nPixel > 0; nPixel-- ) {
         g_Pixels[nPixel] = g_Pixels[nPixel-1];
       }
       

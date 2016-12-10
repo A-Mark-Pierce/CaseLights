@@ -182,8 +182,15 @@ bool  ProcessCometCmd()
   }
 
   if (bValid) {
-    for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-      g_Pixels[nPixel] = rgbVal;
+    for ( int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+//      g_Pixels[nPixel].red = max( (int) rgbVal.red - nPixel, 0 );
+//      g_Pixels[nPixel].green = max( (int) rgbVal.green - nPixel, 0 );
+//      g_Pixels[nPixel].blue = max( (int) rgbVal.blue - nPixel, 0 );
+
+    
+      g_Pixels[nPixel].red = (int) (rgbVal.red * (float) (cNumPixels-nPixel) / cNumPixels + 0.5);
+      g_Pixels[nPixel].green = (int) (rgbVal.green * (float) (cNumPixels-nPixel) / cNumPixels + 0.5);
+      g_Pixels[nPixel].blue = (int) (rgbVal.blue * (float) (cNumPixels-nPixel) / cNumPixels + 0.5);
     }
   }
 
@@ -317,6 +324,7 @@ bool  ProcessCommand()
   if (g_CmdLen > 0) {
     switch (g_CmdBuffer[0]) {
       case 'C':
+      case 'c':
         if ( ProcessFixedCmd() ) {
           g_OperatingMode = eModeStatic;
           bValid = true;
@@ -324,6 +332,7 @@ bool  ProcessCommand()
         break;
 
       case 'K':
+      case 'k':
         if ( ProcessCometCmd() ) {
           g_OperatingMode = eModeStatic;
           bValid = true;
@@ -331,6 +340,7 @@ bool  ProcessCommand()
         break;
 
       case 'X':
+      case 'x':
         if ( ProcessRandomCmd() ) {
           g_OperatingMode = eModeStatic;
           bValid = true;
@@ -338,11 +348,13 @@ bool  ProcessCommand()
         break;
 
       case 'H':
+      case 'h':
         g_OperatingMode = eModeStatic;
         bValid = true;
         break;
 
       case 'B':
+      case 'b':
         if ( ProcessBlinkFadeCmd() ) {
           g_OperatingMode = eModeBlink;
           bValid = true;
@@ -350,6 +362,7 @@ bool  ProcessCommand()
         break;
 
       case 'F':
+      case 'f':
         if ( ProcessBlinkFadeCmd() ) {
           g_OperatingMode = eModeFade;
           bValid = true;
@@ -357,6 +370,7 @@ bool  ProcessCommand()
         break;
 
       case 'R':
+      case 'r':
         if ( ProcessChaseCmd() ) {
           g_OperatingMode = eModeChaseClockwise;
           bValid = true;
@@ -364,6 +378,7 @@ bool  ProcessCommand()
         break;
 
       case 'W':
+      case 'w':
         if ( ProcessChaseCmd() ) {
           g_OperatingMode = eModeChaseWiddershins;
           bValid = true;
@@ -371,6 +386,7 @@ bool  ProcessCommand()
         break;
 
       case 'S':
+      case 's':
         if ( ProcessShuttleCmd() ) {
           g_OperatingMode = eModeShuttle;
           bValid = true;
@@ -396,30 +412,41 @@ bool  ProcessSerial()
     
     Serial.write( newChar );  // Echo
 
-    if (0x0D == newChar) {
-      Serial.write( 0x0A );  // LF senden, um Ordnung im Terminal-Fenster zu bewahren ;)
+    switch( newChar ) {
+      case 0x08:
+        // Backspace (Achtung - PUTTY Terminal/Keyboard send CTRL-H for Backspace)
+        if ( g_CmdLen > 0 ) {
+          g_CmdLen--;
+        }
+        break;
 
-      if ( ProcessCommand() ) {
-        bNewCommand = true;
-        Serial.println("OK");
-      }
-      else {
-        Serial.println("E_CMD");
-      }
-
-      g_CmdLen = 0;
-    }
-    else {
-      if (newChar >= ' ') { // Ignoriere Steuerungs-Zeichen ausser CR, insb. LF
-        if (g_CmdLen < cMaxCommand) {
-          g_CmdBuffer[g_CmdLen++] = newChar;
+      case 0x0D:
+        // Return
+        Serial.write( 0x0A );  // LF senden, um Ordnung im Terminal-Fenster zu bewahren ;)
+  
+        if ( ProcessCommand() ) {
+          bNewCommand = true;
+          Serial.println("OK");
         }
         else {
-          Serial.println("");
-          Serial.println("E_LEN");
-          g_CmdLen = 0;
+          Serial.println("E_CMD");
         }
-      }
+  
+        g_CmdLen = 0;
+        break;
+
+      default:
+        if (newChar >= ' ') { // Ignoriere Steuerungs-Zeichen ausser CR, insb. LF
+          if (g_CmdLen < cMaxCommand) {
+            g_CmdBuffer[g_CmdLen++] = newChar;
+          }
+          else {
+            Serial.println("");
+            Serial.println("E_LEN");
+            g_CmdLen = 0;
+          }
+        }
+        break;
     }
   }
 

@@ -11,11 +11,15 @@
 // Verwendet FastLED 3.1.3 zur Steuerung der NeoPixels
 #include <FastLED.h>
 
+// Verwendet EEPROM um Nodus usw. zu persistieren
+#include <EEPROM.h>
+
 //
 // Arduino kann an einem internem USB-Port angeschlossen werden (direkt am Mainboard)
 //
 
-typedef unsigned long dword;
+// Max EEPROM Speicher
+const unsigned int cMaxEeprom( 512 );
 
 // Parameter fuer serielle Kommunikation
 const unsigned int  cCommsBaudRate(9600);
@@ -35,6 +39,7 @@ typedef enum {
   eModeChaseClockwise,
   eModeChaseWiddershins,
   eModeShuttle,
+  eModeInvalid
   
 } t_OperatingMode;
 
@@ -57,9 +62,14 @@ void setup()
   // Initialiserung NeoPixels
   FastLED.addLeds<NEOPIXEL, cPixelDataOut>(g_Pixels, cNumPixels);
 
-  // Initialzustand - alle gruen, aber nicht zu hell
-  for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-    g_Pixels[nPixel] = CRGB( 0, 100, 0);
+  if ( UnpersistSettings() ) {
+    DoRunLights( true );
+  }
+  else {
+    // Initialzustand - alle gruen, aber nicht zu hell
+    for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+      g_Pixels[nPixel] = CRGB( 0, 100, 0);
+    }
   }
 
   // Zeig erstmals, dass die NeoPixels funktionieren
@@ -69,18 +79,31 @@ void setup()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 void loop() 
 {
+  // Ist ein neuer Befehl vorhanden?
   bool  bGotNew = ProcessSerial();
 
+  if ( bGotNew ) {
+    // Ausgangszustand des neuen Modus in EEPROM fuer den naechsten Neustart sichern 
+    PersistSettings();
+  }
+
+  // Und ausfuehren
+  DoRunLights( bGotNew );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+void  DoRunLights( bool bInitialiseMode )
+{
   switch(g_OperatingMode) {
     case eModeStatic:
-      if (bGotNew) {
+      if (bInitialiseMode) {
         FastLED.show();
 //        Serial.println("Static");
       }
       break;
       
     case eModeBlink:
-      if (bGotNew) {
+      if (bInitialiseMode) {
         InitialiseBlinkMode(millis());
 //        Serial.println("Blink");
       }
@@ -90,7 +113,7 @@ void loop()
       break;
       
     case eModeFade:
-      if (bGotNew) {
+      if (bInitialiseMode) {
         InitialiseFadeMode(millis());
 //        Serial.println("Fade");
       }
@@ -100,7 +123,7 @@ void loop()
       break;
       
     case eModeChaseClockwise:
-      if (bGotNew) {
+      if (bInitialiseMode) {
         InitialiseChaseMode(millis(), true);
 //        Serial.println("Clockwise");
       }
@@ -110,7 +133,7 @@ void loop()
       break;
 
     case eModeChaseWiddershins:
-      if (bGotNew) {
+      if (bInitialiseMode) {
         InitialiseChaseMode(millis(), false);
 //        Serial.println("Widdershins");
       }
@@ -120,7 +143,7 @@ void loop()
       break;
 
     case eModeShuttle:
-      if (bGotNew) {
+      if (bInitialiseMode) {
         InitialiseShuttleMode(millis());
 //        Serial.println("Shuttle");
       }
@@ -131,6 +154,45 @@ void loop()
 
     default:
       break;
-    }
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+void  PersistSettings()
+{
+  unsigned int  eepromAddress( 0 );
+
+  EEPROM.put( eepromAddress, g_OperatingMode );
+  eepromAddress += sizeof( g_OperatingMode );
+
+  EEPROM.put( eepromAddress, g_ModeInterval );
+  eepromAddress += sizeof( g_ModeInterval );
+
+  EEPROM.put( eepromAddress, g_ModeSteps );
+  eepromAddress += sizeof( g_ModeSteps );
+
+  EEPROM.put( eepromAddress, g_Pixels );
+  eepromAddress += sizeof( g_Pixels );
+
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+bool  UnpersistSettings()
+{
+  unsigned int  eepromAddress( 0 );
+
+  EEPROM.get( eepromAddress, g_OperatingMode );
+  eepromAddress += sizeof( g_OperatingMode );
+
+  EEPROM.get( eepromAddress, g_ModeInterval );
+  eepromAddress += sizeof( g_ModeInterval );
+
+  EEPROM.get( eepromAddress, g_ModeSteps );
+  eepromAddress += sizeof( g_ModeSteps );
+
+  EEPROM.get( eepromAddress, g_Pixels );
+  eepromAddress += sizeof( g_Pixels );
+
+  return  (eepromAddress < cMaxEeprom) && (g_OperatingMode < eModeInvalid);
 }
 

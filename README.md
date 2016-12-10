@@ -20,3 +20,9 @@ Rueckgabe:
 OK - Wird gemacht
 E_CMD - Unbekanntes Kommando, falsche Parametrierung, usw.
 E_LEN - Kommando-Puffer voll (kann max 20 Zeichen)
+
+TODO:
+FastLED functions for random colours
+Power limiting?
+Test LEDS externally before installing
+Test voltage levels Arduino and NeoPixels
