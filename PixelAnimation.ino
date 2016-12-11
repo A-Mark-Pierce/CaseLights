@@ -2,6 +2,7 @@
 // Module: Pixel-Animierung
 //
 // Author: Mark Pierce
+// December 2016
 //
 
 #include "Arduino.h"

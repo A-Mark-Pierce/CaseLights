@@ -2,6 +2,7 @@
 // Module: Main
 //
 // Author: Mark Pierce
+// December 2016
 //
 
 
@@ -158,10 +159,18 @@ void  DoRunLights( bool bInitialiseMode )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+const word  cMagicBeanFirst( 0xaa55 );
+const word  cMagicBeanLast( 0x55aa );
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 void  PersistSettings()
 {
   unsigned int  eepromAddress( 0 );
 
+  EEPROM.put( eepromAddress, cMagicBeanFirst );
+  eepromAddress += sizeof( cMagicBeanFirst );
+  
   EEPROM.put( eepromAddress, g_OperatingMode );
   eepromAddress += sizeof( g_OperatingMode );
 
@@ -174,12 +183,25 @@ void  PersistSettings()
   EEPROM.put( eepromAddress, g_Pixels );
   eepromAddress += sizeof( g_Pixels );
 
+  EEPROM.put( eepromAddress, cMagicBeanLast );
+  eepromAddress += sizeof( cMagicBeanLast );
+
+  EEPROM.put( eepromAddress, eepromAddress );
+  eepromAddress += sizeof( eepromAddress );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 bool  UnpersistSettings()
 {
   unsigned int  eepromAddress( 0 );
+  word  magicBean( 0 );
+
+  EEPROM.get( eepromAddress, magicBean );
+  eepromAddress += sizeof( magicBean );
+
+  if ( cMagicBeanFirst != magicBean ) {
+    return  false;
+  }
 
   EEPROM.get( eepromAddress, g_OperatingMode );
   eepromAddress += sizeof( g_OperatingMode );
@@ -192,6 +214,22 @@ bool  UnpersistSettings()
 
   EEPROM.get( eepromAddress, g_Pixels );
   eepromAddress += sizeof( g_Pixels );
+
+  EEPROM.get( eepromAddress, magicBean );
+  eepromAddress += sizeof( magicBean );
+
+  if ( cMagicBeanLast != magicBean ) {
+    return  false;
+  }
+
+  unsigned int  dataLength( 0 );
+  EEPROM.get( eepromAddress, dataLength );
+
+  if ( eepromAddress != dataLength ) {
+    return  false;
+  }
+  
+  eepromAddress += sizeof( dataLength );
 
   return  (eepromAddress < cMaxEeprom) && (g_OperatingMode < eModeInvalid);
 }

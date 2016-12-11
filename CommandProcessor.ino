@@ -2,6 +2,7 @@
 // Module: CommandProcessor
 //
 // Author: Mark Pierce
+// December 2016
 //
 
 #include "Arduino.h"
@@ -125,24 +126,28 @@ bool  ReadColourValue(byte startIndex, CRGB& rColourVal)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool  ProcessFixedCmd()
+// Parametermuster: [000000][ 00]
+//
+bool  ReadColourPixnum(CRGB& rRgbVal, int& rnPixNum)
 {
   bool  bValid(false);
-  CRGB  rgbVal(random(256), random(256), random(256));
-  int  nPixelIndex(-1);
 
   if (g_CmdLen > 1) {
     if (' ' == g_CmdBuffer[1]) {
-      bValid = ReadShortValue(2, (unsigned int&) nPixelIndex);
+      bValid = ReadShortValue(2, (unsigned int&) rnPixNum);
+
+      if ( bValid ) {
+//        rRgbVal = CRGB(random(256), random(256), random(256));
+      }
     }
     else {
       if ( g_CmdLen > 6 ) {
-        bValid = ReadColourValue(1, rgbVal);
+        bValid = ReadColourValue(1, rRgbVal);
   
         if (bValid) {
           if (g_CmdLen > 7) {
             if (' ' == g_CmdBuffer[7]) {
-              bValid = ReadShortValue(8, (unsigned int&) nPixelIndex);
+              bValid = ReadShortValue(8, (unsigned int&) rnPixNum);
             }
           }
         }
@@ -150,9 +155,20 @@ bool  ProcessFixedCmd()
     }
   }
   else {
-    // Zufallsfarbe fuer alle Pixels
+ //   rRgbVal = CRGB(random(256), random(256), random(256));
     bValid = true;
   }
+
+  return  bValid;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool  ProcessFixedCmd()
+{
+  CRGB  rgbVal(random(256), random(256), random(256));
+  int  nPixelIndex(-1);
+
+  bool  bValid = ReadColourPixnum(rgbVal, nPixelIndex);
 
   if (bValid) {
     if (nPixelIndex >= 0) {
@@ -171,26 +187,50 @@ bool  ProcessFixedCmd()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool  ProcessCometCmd()
 {
-  bool  bValid(false);
   CRGB  rgbVal(random(256), random(256), random(256));
-  
-  if ( g_CmdLen > 6 ) {
-    bValid = ReadColourValue(1, rgbVal);
-  }
-  else {
-    bValid = (1 == g_CmdLen);
-  }
+  int  nNumPixels(-1);
 
+  bool  bValid = ReadColourPixnum(rgbVal, nNumPixels);
+  
   if (bValid) {
-    for ( int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+    if ( nNumPixels < 0 ) {
+      nNumPixels =  cNumPixels;
+    }
+    
+    for ( int nPixel = 0; nPixel < nNumPixels; nPixel++ ) {
 //      g_Pixels[nPixel].red = max( (int) rgbVal.red - nPixel, 0 );
 //      g_Pixels[nPixel].green = max( (int) rgbVal.green - nPixel, 0 );
 //      g_Pixels[nPixel].blue = max( (int) rgbVal.blue - nPixel, 0 );
 
     
-      g_Pixels[nPixel].red = (int) (rgbVal.red * (float) (cNumPixels-nPixel) / cNumPixels + 0.5);
-      g_Pixels[nPixel].green = (int) (rgbVal.green * (float) (cNumPixels-nPixel) / cNumPixels + 0.5);
-      g_Pixels[nPixel].blue = (int) (rgbVal.blue * (float) (cNumPixels-nPixel) / cNumPixels + 0.5);
+      g_Pixels[nPixel].red = (int) (rgbVal.red * (float) (nNumPixels-nPixel) / nNumPixels + 0.5);
+      g_Pixels[nPixel].green = (int) (rgbVal.green * (float) (nNumPixels-nPixel) / nNumPixels + 0.5);
+      g_Pixels[nPixel].blue = (int) (rgbVal.blue * (float) (nNumPixels-nPixel) / nNumPixels + 0.5);
+    }
+  }
+
+  return bValid;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool  ProcessJumpCmd()
+{
+  bool  bValid(false);
+  unsigned int nJump;
+
+  if (4 == g_CmdLen) {
+    if ((' ' == g_CmdBuffer[1]) && ReadShortValue(2, nJump)) {
+      while ( nJump > 0 ) {
+        CRGB  lastPixel = g_Pixels[cNumPixels-1];
+        
+        for ( unsigned int nPixel = cNumPixels-1; nPixel > 0; nPixel-- ) {
+          g_Pixels[nPixel] = g_Pixels[nPixel-1];
+        }
+        
+        g_Pixels[0] = lastPixel;
+        nJump--;
+      }
+      bValid = true;
     }
   }
 
@@ -308,7 +348,8 @@ bool  ProcessShuttleCmd()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //  C[000000][ 00] - Fixed colour [RGB value in hex, default random] [pixel index, default all]
-//  K[000000] - Komet, colour brightness decreases along strip [RGB value of comet head in hex, default random]
+//  K[000000][ 00] - Komet, colour brightness decreases along strip [RGB value of comet head in hex, default random] [length in pixels, default all]
+//  J 00 - Jump the pattern n steps along 
 //  X - Set all pixels to a different random colour
 //  B[000000][ 0000] - Blink colour [RGB value in hex, default current][interval in ms, default random]
 //  F[000000][ 0000] - Fade colour up and down [RGB value in hex, default current][interval in ms, default random]
@@ -334,6 +375,14 @@ bool  ProcessCommand()
       case 'K':
       case 'k':
         if ( ProcessCometCmd() ) {
+          g_OperatingMode = eModeStatic;
+          bValid = true;
+        }
+        break;
+
+      case 'J':
+      case 'j':
+        if ( ProcessJumpCmd() ) {
           g_OperatingMode = eModeStatic;
           bValid = true;
         }
