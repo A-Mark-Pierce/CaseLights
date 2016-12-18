@@ -20,6 +20,7 @@ Rueckgabe:
 OK - Wird gemacht
 E_CMD - Unbekanntes Kommando, falsche Parametrierung, usw.
 E_LEN - Kommando-Puffer voll (kann max 20 Zeichen)
+E_BUF
 
 TODO:
 FastLED functions for random colours

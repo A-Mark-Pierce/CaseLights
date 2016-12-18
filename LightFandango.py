@@ -4,6 +4,9 @@
 # Reads the contents of a text file and transmits them line-by-line to an Arduino 
 # running the CaseLight LED controller code
 #
+# Example usage:
+# python LightFandango.py COM3 TestValidCommands.txt -v
+#
 # Author: Mark Pierce
 # December 2016
 #
@@ -16,8 +19,8 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Send text commands from file to CaseLight controller.')
 
-parser.add_argument("source", help="File containing the commands to be sent to the CaseLight controller")
 parser.add_argument("port", help="COM port to which the CaseLight controller is connected")
+parser.add_argument("source", help="File containing the commands to be sent to the CaseLight controller")
 parser.add_argument("-v", "--verbose", help="Verbose mode, displays all commands sent", action="store_true")
 parser.add_argument("-b", "--baudrate", type=int, default=9600, help="Baud rate for serial comms")
 parser.add_argument("-d", "--delay", type=int, default=3, help="Delay in seconds after opening serial port, to allow Arduino to reset")
@@ -66,16 +69,12 @@ while ( (0 == args.repeat) or (numRepeat > 0) ):
 							break
 							
 						if (respChar == b"\r"):
+							if ( response[0:2] == "E_" ):
+								print( "Error: " + response + " at line " + str(lineCounter) + " : " + lightCmd )
 							response = ""
 						elif (respChar != b"\n"):
 							response += respChar.decode("ascii")
 
-						if (response == "OK"):
-							break
-
-						if ((response == "E_CMD") or (response == "E_LEN")):
-							print( "Error at line " + str(lineCounter) + " : " + lightCmd )
-							break
 					
 	numRepeat = numRepeat - 1
 	

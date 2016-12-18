@@ -7,144 +7,48 @@
 
 #include "Arduino.h"
 
-// Globale Daten fuer Bearbeitung der Moden
-CRGB g_PixelsCopy[cNumPixels];
-unsigned long g_InitialTime;
-unsigned int  g_StepCount;
-bool  g_Direction;
-
-
 /////////////////////////////////////////////////////////////////////////////////
-void  InitialiseBlinkMode(unsigned long currentTime)
+void InitialiseStaticMode( t_LightBuffer* pLightBuffer )
 {
   for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-    g_PixelsCopy[nPixel] = g_Pixels[nPixel];
-    g_Pixels[nPixel] = CRGB::Black;
+    pLightBuffer->pixelsCurrent[ nPixel ] = pLightBuffer->pixelsOriginal[ nPixel ];
   }
-
-  g_InitialTime = currentTime;
-  g_Direction = false;
-  FastLED.show();
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-void DoBlinkMode(unsigned long currentTime)
+void  InitialiseBlinkMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
 {
-  if ( abs(currentTime - g_InitialTime) >= g_ModeInterval ) {
-    if ( g_Direction ) {
+  for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+//    pLightBuffer->pixelsCopy[nPixel] = g_Pixels[nPixel];
+    pLightBuffer->pixelsCurrent[nPixel] = CRGB::Black;
+  }
+
+  pLightBuffer->initialTime = currentTime;
+  pLightBuffer->bDirection = false;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+bool DoBlinkMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+{
+  if ( abs(currentTime - pLightBuffer->initialTime) >= pLightBuffer->modeInterval ) {
+    if ( pLightBuffer->bDirection ) {
       // Schwarz wieder setzen
       for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-        g_Pixels[nPixel] = CRGB::Black;
+        pLightBuffer->pixelsCurrent[nPixel] = CRGB::Black;
       }
 
-      g_Direction = false;
+      pLightBuffer->bDirection = false;
     }
     else {
       // Urspruengliche Farbe wiederherstellen
       for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-        g_Pixels[nPixel] = g_PixelsCopy[nPixel];
+        pLightBuffer->pixelsCurrent[nPixel] = pLightBuffer->pixelsOriginal[nPixel];
       }
 
-      g_Direction = true;
+      pLightBuffer->bDirection = true;
     }
     
-    g_InitialTime = currentTime;
-    FastLED.show();
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////
-void  InitialiseFadeMode(unsigned long currentTime)
-{
-  for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-    g_PixelsCopy[nPixel] = g_Pixels[nPixel];
-  }
-
-  g_InitialTime = currentTime;
-  g_Direction = false;
-}
-
-/////////////////////////////////////////////////////////////////////////////////
-void DoFadeMode(unsigned long currentTime)
-{
-  if ( abs(currentTime - g_InitialTime) >= g_ModeInterval ) {
-    // Ende der Phase
-    if ( g_Direction ) {
-      // Urspruengliche Farbe wiederherstellen
-      for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-        g_Pixels[nPixel] = g_PixelsCopy[nPixel];
-      }
-
-      g_Direction = false;
-    }
-    else {
-      // Schwarz setzen
-      for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-        g_Pixels[nPixel] = CRGB::Black;
-      }
-
-      g_Direction = true;
-    }
-
-    g_InitialTime = currentTime;
-    FastLED.show();
-    return;
-  }
-  
-  float fProgress = (float) abs(currentTime - g_InitialTime) / (float) g_ModeInterval;
-  
-  if ( g_Direction ) {
-    // Fade hoch
-    for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-      g_Pixels[nPixel].red = g_PixelsCopy[nPixel].red * fProgress;
-      g_Pixels[nPixel].green = g_PixelsCopy[nPixel].green * fProgress;
-      g_Pixels[nPixel].blue = g_PixelsCopy[nPixel].blue * fProgress;
-    }
-  }
-  else {
-    // Fade nach Schwarz
-    for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-      g_Pixels[nPixel].red = g_PixelsCopy[nPixel].red * (1.0 - fProgress);
-      g_Pixels[nPixel].green = g_PixelsCopy[nPixel].green * (1.0 - fProgress);
-      g_Pixels[nPixel].blue = g_PixelsCopy[nPixel].blue * (1.0 - fProgress);
-    }
-  }
-  
-  FastLED.show();
-}
-
-/////////////////////////////////////////////////////////////////////////////////
-void  InitialiseChaseMode(unsigned long currentTime, bool bDirection)
-{
-  g_InitialTime = currentTime;
-  g_Direction = bDirection;
-}
-
-/////////////////////////////////////////////////////////////////////////////////
-bool DoChaseMode(unsigned long currentTime)
-{
-  if ( abs(currentTime - g_InitialTime) >= g_ModeInterval ) {
-    if ( g_Direction ) {
-      CRGB  lastPixel = g_Pixels[cNumPixels-1];
-      
-      for ( unsigned int nPixel = cNumPixels-1; nPixel > 0; nPixel-- ) {
-        g_Pixels[nPixel] = g_Pixels[nPixel-1];
-      }
-      
-      g_Pixels[0] = lastPixel;
-    }
-    else {
-      CRGB  firstPixel = g_Pixels[0];
-      
-      for ( unsigned int nPixel = 0; nPixel < cNumPixels-1; nPixel++ ) {
-        g_Pixels[nPixel] = g_Pixels[nPixel+1];
-      }
-      
-      g_Pixels[cNumPixels-1] = firstPixel;
-    }
-    
-    g_InitialTime = currentTime;
-    FastLED.show();
+    pLightBuffer->initialTime = currentTime;
     return  true;
   }
 
@@ -152,24 +56,169 @@ bool DoChaseMode(unsigned long currentTime)
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-void  InitialiseShuttleMode(unsigned long currentTime)
+void  InitialiseFadeMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
 {
-  g_StepCount = 0;
-  InitialiseChaseMode(currentTime, true);
+  for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+    pLightBuffer->pixelsCurrent[ nPixel ] = pLightBuffer->pixelsOriginal[ nPixel ];
+  }
+
+  pLightBuffer->initialTime = currentTime;
+  pLightBuffer->bDirection = false;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-void DoShuttleMode(unsigned long currentTime)
+bool DoFadeMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
 {
-  if ( DoChaseMode(currentTime) ) {
-    g_StepCount++;
+  if ( abs(currentTime - pLightBuffer->initialTime) >= pLightBuffer->modeInterval ) {
+    // Ende der Phase
+    if ( pLightBuffer->bDirection ) {
+      // Urspruengliche Farbe wiederherstellen
+      for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+        pLightBuffer->pixelsCurrent[ nPixel ] = pLightBuffer -> pixelsOriginal[ nPixel ];
+      }
 
-    if ( g_StepCount > g_ModeSteps) {
-      // Richtungswechsel
-      g_Direction = !g_Direction;
-      g_StepCount = 0;
+      pLightBuffer->bDirection = false;
+    }
+    else {
+      // Schwarz setzen
+      for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+        pLightBuffer->pixelsCurrent[ nPixel ] = CRGB::Black;
+      }
+
+      pLightBuffer->bDirection = true;
+    }
+
+    pLightBuffer->initialTime = currentTime;
+    return  true;
+  }
+  
+  float fProgress = (float) abs(currentTime - pLightBuffer->initialTime) / (float) pLightBuffer->modeInterval;
+  bool  bChanged( false );
+  
+  if ( pLightBuffer->bDirection ) {
+    // Fade hoch
+    for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+      CRGB  newShade;
+      
+      newShade.red = pLightBuffer->pixelsOriginal[nPixel].red * fProgress;
+      newShade.green = pLightBuffer->pixelsOriginal[nPixel].green * fProgress;
+      newShade.blue = pLightBuffer->pixelsOriginal[nPixel].blue * fProgress;
+
+      if ( newShade != pLightBuffer->pixelsCurrent[nPixel] ) {
+        pLightBuffer->pixelsCurrent[nPixel] = newShade;
+        bChanged = true;
+      }
     }
   }
+  else {
+    // Fade nach Schwarz
+    for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+      CRGB  newShade;
+      
+      newShade.red = pLightBuffer->pixelsOriginal[nPixel].red * (1.0 - fProgress);
+      newShade.green = pLightBuffer->pixelsOriginal[nPixel].green * (1.0 - fProgress);
+      newShade.blue = pLightBuffer->pixelsOriginal[nPixel].blue * (1.0 - fProgress);
+      
+      if ( newShade != pLightBuffer->pixelsCurrent[nPixel] ) {
+        pLightBuffer->pixelsCurrent[nPixel] = newShade;
+        bChanged = true;
+      }
+    }
+  }
+
+  return  bChanged;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+void  InitialiseChaseMode( t_LightBuffer* pLightBuffer, unsigned long currentTime, bool bDirection )
+{
+  for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
+    pLightBuffer->pixelsCurrent[ nPixel ] = pLightBuffer->pixelsOriginal[ nPixel ];
+  }
+
+  pLightBuffer->initialTime = currentTime;
+  pLightBuffer->bDirection = bDirection;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+bool DoChaseMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+{
+  if ( abs(currentTime - pLightBuffer->initialTime) >= pLightBuffer->modeInterval ) {
+    if ( pLightBuffer->bDirection ) {
+      CRGB  lastPixel = pLightBuffer->pixelsCurrent[cNumPixels-1];
+      
+      for ( unsigned int nPixel = cNumPixels-1; nPixel > 0; nPixel-- ) {
+        pLightBuffer->pixelsCurrent[nPixel] = pLightBuffer->pixelsCurrent[nPixel-1];
+      }
+      
+      pLightBuffer->pixelsCurrent[0] = lastPixel;
+    }
+    else {
+      CRGB  firstPixel = pLightBuffer->pixelsCurrent[0];
+      
+      for ( unsigned int nPixel = 0; nPixel < cNumPixels-1; nPixel++ ) {
+        pLightBuffer->pixelsCurrent[nPixel] = pLightBuffer->pixelsCurrent[nPixel+1];
+      }
+      
+      pLightBuffer->pixelsCurrent[cNumPixels-1] = firstPixel;
+    }
+    
+    pLightBuffer->initialTime = currentTime;
+    return  true;
+  }
+
+  return  false;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+void  InitialiseShuttleMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+{
+  pLightBuffer->stepCount = 0;
+  InitialiseChaseMode( pLightBuffer, currentTime, true );
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+bool DoShuttleMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+{
+  if ( DoChaseMode( pLightBuffer, currentTime ) ) {
+    pLightBuffer->stepCount++;
+
+    if ( pLightBuffer->stepCount > pLightBuffer->modeSteps) {
+      // Richtungswechsel
+      pLightBuffer->bDirection = !pLightBuffer->bDirection;
+      pLightBuffer->stepCount = 0;
+    }
+
+    return  true;
+  }
+
+  return  false;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+void  InitialiseBounceMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+{
+  pLightBuffer->stepCount = 0;
+  InitialiseChaseMode( pLightBuffer, currentTime, true );
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+bool DoBounceMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+{
+  // TODO
+  if ( DoChaseMode( pLightBuffer, currentTime ) ) {
+    pLightBuffer->stepCount++;
+
+    if ( pLightBuffer->stepCount > pLightBuffer->modeSteps) {
+      // Richtungswechsel
+      pLightBuffer->bDirection = !pLightBuffer->bDirection;
+      pLightBuffer->stepCount = 0;
+    }
+
+    return  true;
+  }
+
+  return  false;
 }
 
 
