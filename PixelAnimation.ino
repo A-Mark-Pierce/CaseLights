@@ -8,7 +8,7 @@
 #include "Arduino.h"
 
 /////////////////////////////////////////////////////////////////////////////////
-void InitialiseStaticMode( t_LightBuffer* pLightBuffer )
+void InitialiseStaticMode( t_LightZone* pLightBuffer )
 {
   for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
     pLightBuffer->pixelsCurrent[ nPixel ] = pLightBuffer->pixelsOriginal[ nPixel ];
@@ -16,7 +16,7 @@ void InitialiseStaticMode( t_LightBuffer* pLightBuffer )
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-void  InitialiseBlinkMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+void  InitialiseBlinkMode( t_LightZone* pLightBuffer, unsigned long currentTime )
 {
   for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
 //    pLightBuffer->pixelsCopy[nPixel] = g_Pixels[nPixel];
@@ -28,7 +28,7 @@ void  InitialiseBlinkMode( t_LightBuffer* pLightBuffer, unsigned long currentTim
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-bool DoBlinkMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+bool DoBlinkMode( t_LightZone* pLightBuffer, unsigned long currentTime )
 {
   if ( abs(currentTime - pLightBuffer->initialTime) >= pLightBuffer->modeInterval ) {
     if ( pLightBuffer->bDirection ) {
@@ -56,7 +56,7 @@ bool DoBlinkMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-void  InitialiseFadeMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+void  InitialiseFadeMode( t_LightZone* pLightBuffer, unsigned long currentTime )
 {
   for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
     pLightBuffer->pixelsCurrent[ nPixel ] = pLightBuffer->pixelsOriginal[ nPixel ];
@@ -67,7 +67,7 @@ void  InitialiseFadeMode( t_LightBuffer* pLightBuffer, unsigned long currentTime
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-bool DoFadeMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+bool DoFadeMode( t_LightZone* pLightBuffer, unsigned long currentTime )
 {
   if ( abs(currentTime - pLightBuffer->initialTime) >= pLightBuffer->modeInterval ) {
     // Ende der Phase
@@ -130,7 +130,7 @@ bool DoFadeMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-void  InitialiseChaseMode( t_LightBuffer* pLightBuffer, unsigned long currentTime, bool bDirection )
+void  InitialiseChaseMode( t_LightZone* pLightBuffer, unsigned long currentTime, bool bDirection )
 {
   for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
     pLightBuffer->pixelsCurrent[ nPixel ] = pLightBuffer->pixelsOriginal[ nPixel ];
@@ -141,7 +141,7 @@ void  InitialiseChaseMode( t_LightBuffer* pLightBuffer, unsigned long currentTim
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-bool DoChaseMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+bool DoChaseMode( t_LightZone* pLightBuffer, unsigned long currentTime )
 {
   if ( abs(currentTime - pLightBuffer->initialTime) >= pLightBuffer->modeInterval ) {
     if ( pLightBuffer->bDirection ) {
@@ -171,14 +171,14 @@ bool DoChaseMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-void  InitialiseShuttleMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+void  InitialiseShuttleMode( t_LightZone* pLightBuffer, unsigned long currentTime )
 {
   pLightBuffer->stepCount = 0;
   InitialiseChaseMode( pLightBuffer, currentTime, true );
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-bool DoShuttleMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+bool DoShuttleMode( t_LightZone* pLightBuffer, unsigned long currentTime )
 {
   if ( DoChaseMode( pLightBuffer, currentTime ) ) {
     pLightBuffer->stepCount++;
@@ -196,14 +196,14 @@ bool DoShuttleMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-void  InitialiseBounceMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+void  InitialiseBounceMode( t_LightZone* pLightBuffer, unsigned long currentTime )
 {
   pLightBuffer->stepCount = 0;
   InitialiseChaseMode( pLightBuffer, currentTime, true );
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-bool DoBounceMode( t_LightBuffer* pLightBuffer, unsigned long currentTime )
+bool DoBounceMode( t_LightZone* pLightBuffer, unsigned long currentTime )
 {
   // TODO
   if ( DoChaseMode( pLightBuffer, currentTime ) ) {

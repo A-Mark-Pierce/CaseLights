@@ -184,7 +184,7 @@ bool  ReadColourPixnum(CRGB& rRgbVal, int& rnPixNum, const char* pCmdTail)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool  ProcessFixedCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
+bool  ProcessFixedCmd( t_LightZone* pLightZone, const char* pCmdTail )
 {
   CRGB  rgbVal(random(256), random(256), random(256));
   int  nPixelIndex(-1);
@@ -193,11 +193,11 @@ bool  ProcessFixedCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
 
   if (bValid) {
     if (nPixelIndex >= 0) {
-      pLightBuffer->pixelsOriginal[nPixelIndex] = rgbVal;
+      pLightZone->pixelsOriginal[nPixelIndex] = rgbVal;
     }
     else {
       for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-        pLightBuffer->pixelsOriginal[nPixel] = rgbVal;
+        pLightZone->pixelsOriginal[nPixel] = rgbVal;
       }
     }
   }
@@ -206,7 +206,7 @@ bool  ProcessFixedCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool  ProcessCometCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
+bool  ProcessCometCmd( t_LightZone* pLightZone, const char* pCmdTail )
 {
   CRGB  rgbVal(random(256), random(256), random(256));
   int  nNumPixels(-1);
@@ -219,14 +219,14 @@ bool  ProcessCometCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
     }
     
     for ( int nPixel = 0; nPixel < nNumPixels; nPixel++ ) {
-//      pLightBuffer->pixelsOriginal[nPixel].red = max( (int) rgbVal.red - nPixel, 0 );
-//      pLightBuffer->pixelsOriginal[nPixel].green = max( (int) rgbVal.green - nPixel, 0 );
-//      pLightBuffer->pixelsOriginal[nPixel].blue = max( (int) rgbVal.blue - nPixel, 0 );
+//      pLightZone->pixelsOriginal[nPixel].red = max( (int) rgbVal.red - nPixel, 0 );
+//      pLightZone->pixelsOriginal[nPixel].green = max( (int) rgbVal.green - nPixel, 0 );
+//      pLightZone->pixelsOriginal[nPixel].blue = max( (int) rgbVal.blue - nPixel, 0 );
 
     
-      pLightBuffer->pixelsOriginal[nPixel].red = (int) (rgbVal.red * (float) (nNumPixels-nPixel) / nNumPixels + 0.5);
-      pLightBuffer->pixelsOriginal[nPixel].green = (int) (rgbVal.green * (float) (nNumPixels-nPixel) / nNumPixels + 0.5);
-      pLightBuffer->pixelsOriginal[nPixel].blue = (int) (rgbVal.blue * (float) (nNumPixels-nPixel) / nNumPixels + 0.5);
+      pLightZone->pixelsOriginal[nPixel].red = (int) (rgbVal.red * (float) (nNumPixels-nPixel) / nNumPixels + 0.5);
+      pLightZone->pixelsOriginal[nPixel].green = (int) (rgbVal.green * (float) (nNumPixels-nPixel) / nNumPixels + 0.5);
+      pLightZone->pixelsOriginal[nPixel].blue = (int) (rgbVal.blue * (float) (nNumPixels-nPixel) / nNumPixels + 0.5);
     }
   }
 
@@ -234,20 +234,20 @@ bool  ProcessCometCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool  ProcessJumpCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
+bool  ProcessJumpCmd( t_LightZone* pLightZone, const char* pCmdTail )
 {
   bool  bValid(false);
   unsigned int nJump;
 
   if ( (charSpace == pCmdTail[0]) && ReadShortValue(nJump, &(pCmdTail[1])) ) {
     while ( nJump > 0 ) {
-      CRGB  lastPixel = pLightBuffer->pixelsOriginal[cNumPixels-1];
+      CRGB  lastPixel = pLightZone->pixelsOriginal[cNumPixels-1];
       
       for ( unsigned int nPixel = cNumPixels-1; nPixel > 0; nPixel-- ) {
-        pLightBuffer->pixelsOriginal[nPixel] = pLightBuffer->pixelsOriginal[nPixel-1];
+        pLightZone->pixelsOriginal[nPixel] = pLightZone->pixelsOriginal[nPixel-1];
       }
       
-      pLightBuffer->pixelsOriginal[0] = lastPixel;
+      pLightZone->pixelsOriginal[0] = lastPixel;
       nJump--;
     }
     bValid = true;
@@ -257,13 +257,13 @@ bool  ProcessJumpCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool  ProcessRandomCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
+bool  ProcessRandomCmd( t_LightZone* pLightZone, const char* pCmdTail )
 {
   bool  bValid( charNull == pCmdTail[0] );
   
   if (bValid) {
     for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-      pLightBuffer->pixelsOriginal[nPixel] = CRGB(random(256), random(256), random(256));
+      pLightZone->pixelsOriginal[nPixel] = CRGB(random(256), random(256), random(256));
     }
   }
 
@@ -271,13 +271,13 @@ bool  ProcessRandomCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool  ProcessBlinkFadeCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
+bool  ProcessBlinkFadeCmd( t_LightZone* pLightZone, const char* pCmdTail )
 {
   bool  bValid(false);
 
   if ( charNull != pCmdTail[0] ) {
     if (charSpace == pCmdTail[0]) {
-      bValid = ReadLongValue( pLightBuffer->modeInterval, &(pCmdTail[1]) );
+      bValid = ReadLongValue( pLightZone->modeInterval, &(pCmdTail[1]) );
     }
     else {
       CRGB  rgbVal;
@@ -286,24 +286,24 @@ bool  ProcessBlinkFadeCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
       if (bValid) {
         if (g_CmdLen > 7) {
           if ( charSpace == pCmdTail[6] ) {
-            bValid = ReadLongValue( pLightBuffer->modeInterval, &(pCmdTail[7]));
+            bValid = ReadLongValue( pLightZone->modeInterval, &(pCmdTail[7]));
           }
           else {
-            pLightBuffer->modeInterval = random(10000);
+            pLightZone->modeInterval = random(10000);
           }
         }
       }
 
       if ( bValid ) {
         for ( unsigned int nPixel = 0; nPixel < cNumPixels; nPixel++ ) {
-          pLightBuffer->pixelsOriginal[nPixel] = rgbVal;
+          pLightZone->pixelsOriginal[nPixel] = rgbVal;
         }
       }
     }
   }
   else {
     // Zufallswert fuer Blink-Interval
-    pLightBuffer->modeInterval = random(10000);
+    pLightZone->modeInterval = random(10000);
     bValid = true;
   }
 
@@ -312,18 +312,18 @@ bool  ProcessBlinkFadeCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool  ProcessChaseCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
+bool  ProcessChaseCmd( t_LightZone* pLightZone, const char* pCmdTail )
 {
   bool  bValid(false);
 
   if ( charNull != pCmdTail[0] ) {
     if ( charSpace == pCmdTail[0] ) {
-      bValid = ReadLongValue( pLightBuffer->modeInterval, &(pCmdTail[1]) );
+      bValid = ReadLongValue( pLightZone->modeInterval, &(pCmdTail[1]) );
     }
   }
   else {
     // Zufallswert fuer Chase-Interval
-    pLightBuffer->modeInterval = random(10000);
+    pLightZone->modeInterval = random(10000);
     bValid = true;
   }
 
@@ -331,24 +331,24 @@ bool  ProcessChaseCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool  ProcessShuttleCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail  )
+bool  ProcessShuttleCmd( t_LightZone* pLightZone, const char* pCmdTail  )
 {
   bool  bValid(false);
 
   if ( charNull != pCmdTail[0] ) {
     if ( charSpace == pCmdTail[0] ) {
-      if ( ReadLongValue(pLightBuffer->modeInterval, &(pCmdTail[1]) ) ) {
+      if ( ReadLongValue(pLightZone->modeInterval, &(pCmdTail[1]) ) ) {
         if ( charSpace == pCmdTail[5] ) {
-          bValid = ReadShortValue( pLightBuffer->modeSteps, &(pCmdTail[6]) );
+          bValid = ReadShortValue( pLightZone->modeSteps, &(pCmdTail[6]) );
         }
         else {
-          pLightBuffer->modeSteps = random(cNumPixels);
+          pLightZone->modeSteps = random(cNumPixels);
           bValid = true;
         }
       }
       else {
-        if ( ReadShortValue(pLightBuffer->modeSteps, &(pCmdTail[1]) ) ) {
-          pLightBuffer->modeInterval = random(10000);
+        if ( ReadShortValue(pLightZone->modeSteps, &(pCmdTail[1]) ) ) {
+          pLightZone->modeInterval = random(10000);
           bValid = true;
         }
       }    
@@ -356,8 +356,8 @@ bool  ProcessShuttleCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail  )
   }
   else {
     // Zufallswerte
-    pLightBuffer->modeInterval = random(10000);
-    pLightBuffer->modeSteps = random(cNumPixels);
+    pLightZone->modeInterval = random(10000);
+    pLightZone->modeSteps = random(cNumPixels);
     bValid = true;
   }
 
@@ -384,7 +384,7 @@ bool  ProcessShuttleCmd( t_LightBuffer* pLightBuffer, const char* pCmdTail  )
 //
 bool  ProcessCommand( unsigned int nLightIndex, const char* pCmd )
 {
-  if ( nLightIndex >= cNumLightBuffers ) {
+  if ( nLightIndex >= cNumLightZones ) {
     Serial.println( F( "E_IDX" ) );
     InitialiseCmdBuf();
     return  false;      
@@ -405,86 +405,86 @@ bool  ProcessCommand( unsigned int nLightIndex, const char* pCmd )
   switch (pCmd[0]) {
     case cmdFixedUpper:
     case cmdFixedLower:
-      if ( ProcessFixedCmd( &(g_LightBuffers[ nLightIndex ]), &(pCmd[1]) ) ) {
-        g_LightBuffers[ nLightIndex ].operatingMode = eModeStatic;
+      if ( ProcessFixedCmd( &(g_LightZones[ nLightIndex ]), &(pCmd[1]) ) ) {
+        g_LightZones[ nLightIndex ].operatingMode = eModeStatic;
         bValid = true;
       }
       break;
 
     case cmdCometUpper:
     case cmdCometLower:
-      if ( ProcessCometCmd( &(g_LightBuffers[ nLightIndex ]), &(pCmd[1]) ) ) {
-        g_LightBuffers[ nLightIndex ].operatingMode = eModeStatic;
+      if ( ProcessCometCmd( &(g_LightZones[ nLightIndex ]), &(pCmd[1]) ) ) {
+        g_LightZones[ nLightIndex ].operatingMode = eModeStatic;
         bValid = true;
       }
       break;
 
     case cmdJumpUpper:
     case cmdJumpLower:
-      if ( ProcessJumpCmd( &(g_LightBuffers[ nLightIndex ]), &(pCmd[1]) ) ) {
-        g_LightBuffers[ nLightIndex ].operatingMode = eModeStatic;
+      if ( ProcessJumpCmd( &(g_LightZones[ nLightIndex ]), &(pCmd[1]) ) ) {
+        g_LightZones[ nLightIndex ].operatingMode = eModeStatic;
         bValid = true;
       }
       break;
 
     case cmdRandomUpper:
     case cmdRandomLower:
-      if ( ProcessRandomCmd( &(g_LightBuffers[ nLightIndex ]), &(pCmd[1]) ) ) {
-        g_LightBuffers[ nLightIndex ].operatingMode = eModeStatic;
+      if ( ProcessRandomCmd( &(g_LightZones[ nLightIndex ]), &(pCmd[1]) ) ) {
+        g_LightZones[ nLightIndex ].operatingMode = eModeStatic;
         bValid = true;
       }
       break;
 
     case cmdHaltUpper:
     case cmdHaltLower:
-      g_LightBuffers[ nLightIndex ].operatingMode = eModeStatic;
+      g_LightZones[ nLightIndex ].operatingMode = eModeStatic;
       bValid = true;
       break;
 
     case cmdBlinkUpper:
     case cmdBlinkLower:
-      if ( ProcessBlinkFadeCmd( &(g_LightBuffers[ nLightIndex ]), &(pCmd[1])  ) ) {
-        g_LightBuffers[ nLightIndex ].operatingMode = eModeBlink;
+      if ( ProcessBlinkFadeCmd( &(g_LightZones[ nLightIndex ]), &(pCmd[1])  ) ) {
+        g_LightZones[ nLightIndex ].operatingMode = eModeBlink;
         bValid = true;
       }
       break;
 
     case cmdFadeUpper:
     case cmdFadeLower:
-      if ( ProcessBlinkFadeCmd( &(g_LightBuffers[ nLightIndex ]), &(pCmd[1]) ) ) {
-        g_LightBuffers[ nLightIndex ].operatingMode = eModeFade;
+      if ( ProcessBlinkFadeCmd( &(g_LightZones[ nLightIndex ]), &(pCmd[1]) ) ) {
+        g_LightZones[ nLightIndex ].operatingMode = eModeFade;
         bValid = true;
       }
       break;
 
     case cmdRotateUpper:
     case cmdRotateLower:
-      if ( ProcessChaseCmd( &(g_LightBuffers[ nLightIndex ]), &(pCmd[1]) ) ) {
-        g_LightBuffers[ nLightIndex ].operatingMode = eModeChaseClockwise;
+      if ( ProcessChaseCmd( &(g_LightZones[ nLightIndex ]), &(pCmd[1]) ) ) {
+        g_LightZones[ nLightIndex ].operatingMode = eModeChaseClockwise;
         bValid = true;
       }
       break;
 
     case cmdWidderUpper:
     case cmdWidderLower:
-      if ( ProcessChaseCmd( &(g_LightBuffers[ nLightIndex ]), &(pCmd[1]) ) ) {
-        g_LightBuffers[ nLightIndex ].operatingMode = eModeChaseWiddershins;
+      if ( ProcessChaseCmd( &(g_LightZones[ nLightIndex ]), &(pCmd[1]) ) ) {
+        g_LightZones[ nLightIndex ].operatingMode = eModeChaseWiddershins;
         bValid = true;
       }
       break;
 
     case cmdShuttleUpper:
     case cmdShuttleLower:
-      if ( ProcessShuttleCmd( &(g_LightBuffers[ nLightIndex ]), &(pCmd[1]) ) ) {
-        g_LightBuffers[ nLightIndex ].operatingMode = eModeShuttle;
+      if ( ProcessShuttleCmd( &(g_LightZones[ nLightIndex ]), &(pCmd[1]) ) ) {
+        g_LightZones[ nLightIndex ].operatingMode = eModeShuttle;
         bValid = true;
       }
       break;
 
     case cmdBounceUpper:
     case cmdBounceLower:
-      if ( ProcessShuttleCmd( &(g_LightBuffers[ nLightIndex ]), &(pCmd[1]) ) ) {
-        g_LightBuffers[ nLightIndex ].operatingMode = eModeBounce;
+      if ( ProcessShuttleCmd( &(g_LightZones[ nLightIndex ]), &(pCmd[1]) ) ) {
+        g_LightZones[ nLightIndex ].operatingMode = eModeBounce;
         bValid = true;
       }
       break;
@@ -496,13 +496,13 @@ bool  ProcessCommand( unsigned int nLightIndex, const char* pCmd )
 
     case cmdActiveUpper:
     case cmdActiveLower:
-      g_LightBuffers[ nLightIndex ].bActive = true;
+      g_LightZones[ nLightIndex ].bActive = true;
       bValid = true;
       break;
 
     case cmdDeactUpper:
     case cmdDeactLower:
-      g_LightBuffers[ nLightIndex ].bActive = false;
+      g_LightZones[ nLightIndex ].bActive = false;
       bValid = true;
       break;
 

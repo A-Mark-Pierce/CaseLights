@@ -1,0 +1,8 @@
+C000000
+!delay 2
+C660000
+!delay 2
+C000066
+!delay 2
+C006600
+!delay 2
